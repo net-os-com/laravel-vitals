@@ -1,7 +1,7 @@
 # Laravel Vitals
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/net-os/laravel-vitals.svg?style=flat-square)](https://packagist.org/packages/net-os/laravel-vitals)
-[![Tests](https://github.com/net-os/laravel-vitals/actions/workflows/run-tests.yml/badge.svg)](https://github.com/net-os/laravel-vitals/actions/workflows/run-tests.yml)
+[![Tests](https://github.com/net-os-com/laravel-vitals/actions/workflows/run-tests.yml/badge.svg)](https://github.com/net-os-com/laravel-vitals/actions/workflows/run-tests.yml)
 
 Health checks for Laravel, both for the whole application and per tenant, with a dashboard in the style of Horizon.
 
