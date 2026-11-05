@@ -1,0 +1,38 @@
+laravel: '@testbench'
+
+env:
+  - APP_NAME="Vitals workbench"
+  - APP_ENV=local
+  - APP_DEBUG=true
+  - DB_CONNECTION=sqlite
+  - CACHE_STORE=file
+  - SESSION_DRIVER=file
+  - QUEUE_CONNECTION=sync
+
+providers:
+  - Stancl\Tenancy\TenancyServiceProvider
+  - NetOs\Vitals\VitalsServiceProvider
+  - Workbench\App\Providers\WorkbenchServiceProvider
+
+migrations:
+  - workbench/database/migrations
+
+seeders:
+  - Workbench\Database\Seeders\DatabaseSeeder
+
+workbench:
+  start: '/vitals'
+  install: true
+  health: false
+  discovers:
+    web: false
+    api: false
+    commands: false
+    components: false
+    views: false
+  build:
+    - create-sqlite-db
+    - db-wipe
+    - migrate-fresh
+  assets: []
+  sync: []
