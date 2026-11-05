@@ -2,8 +2,12 @@
     "name": "net-os/laravel-vitals",
     "description": "Health checks for Laravel, centrally and per tenant, with a Horizon-style dashboard.",
     "keywords": [
-        "NetOS",
+        "net-os",
         "laravel",
+        "health",
+        "health-checks",
+        "monitoring",
+        "multi-tenancy",
         "laravel-vitals"
     ],
     "homepage": "https://github.com/net-os/laravel-vitals",
@@ -21,32 +25,43 @@
         "illuminate/contracts": "^11.0||^12.0||^13.0"
     },
     "require-dev": {
+        "larastan/larastan": "^3.0",
         "laravel/pint": "^1.14",
         "nunomaduro/collision": "^8.8",
-        "larastan/larastan": "^3.0",
         "orchestra/testbench": "^11.0.0||^10.0.0||^9.0.0",
         "pestphp/pest": "^4.0",
         "pestphp/pest-plugin-arch": "^4.0",
         "pestphp/pest-plugin-laravel": "^4.0",
         "phpstan/extension-installer": "^1.4",
         "phpstan/phpstan-deprecation-rules": "^2.0",
-        "phpstan/phpstan-phpunit": "^2.0"
+        "phpstan/phpstan-phpunit": "^2.0",
+        "stancl/tenancy": "^3.9"
     },
     "autoload": {
         "psr-4": {
-            "NetOs\\Vitals\\": "src/",
-            "NetOs\\Vitals\\Database\\Factories\\": "database/factories/"
+            "NetOs\\Vitals\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
             "NetOs\\Vitals\\Tests\\": "tests/",
-            "Workbench\\App\\": "workbench/app/"
+            "Workbench\\App\\": "workbench/app/",
+            "Workbench\\Database\\Seeders\\": "workbench/database/seeders/"
         }
     },
     "scripts": {
-        "post-autoload-dump": "@composer run prepare",
+        "post-autoload-dump": [
+            "@clear",
+            "@prepare"
+        ],
+        "clear": "@php vendor/bin/testbench package:purge-skeleton --ansi",
         "prepare": "@php vendor/bin/testbench package:discover --ansi",
+        "build": "@php vendor/bin/testbench workbench:build --ansi",
+        "serve": [
+            "Composer\\Config::disableProcessTimeout",
+            "@build",
+            "@php vendor/bin/testbench serve --ansi"
+        ],
         "analyse": "vendor/bin/phpstan analyse",
         "test": "vendor/bin/pest",
         "test-coverage": "vendor/bin/pest --coverage",
@@ -70,5 +85,9 @@
         }
     },
     "minimum-stability": "dev",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "suggest": {
+        "stancl/tenancy": "Run tenant checks for every stancl/tenancy tenant (^3.9)",
+        "laravel/horizon": "Required for HorizonCheck"
+    }
 }

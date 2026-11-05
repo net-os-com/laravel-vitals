@@ -1,0 +1,1 @@
+<div class="runs" aria-hidden="true">@foreach($snapshot->strip() as $status)<i class="{{ match (true) { $status === null, $status === \NetOs\Vitals\Enums\Status::Skipped => 'n', $status->isFailing() => 'f', $status === \NetOs\Vitals\Enums\Status::Warning => 'w', default => '' } }}"></i>@endforeach</div>

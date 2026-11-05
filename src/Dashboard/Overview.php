@@ -1,0 +1,90 @@
+<?php
+
+namespace NetOs\Vitals\Dashboard;
+
+use Carbon\CarbonImmutable;
+use Illuminate\Support\Collection;
+
+final readonly class Overview
+{
+    /**
+     * @param  Collection<int, CheckSnapshot>  $central
+     * @param  Collection<int, TenantSnapshot>  $tenants
+     */
+    public function __construct(
+        public CarbonImmutable $now,
+        public string $environment,
+        public Collection $central,
+        public Collection $tenants,
+        public bool $usesTenancy,
+        public ?CarbonImmutable $heartbeat,
+        public bool $heartbeatStale,
+    ) {}
+
+    /**
+     * @return Collection<int, TenantSnapshot>
+     */
+    public function attention(): Collection
+    {
+        return $this->tenants
+            ->filter(fn (TenantSnapshot $tenant): bool => $tenant->needsAttention())
+            ->sortByDesc(fn (TenantSnapshot $tenant): array => [$tenant->isUnreachable(), $tenant->health()->severity(), $tenant->failing()])
+            ->values();
+    }
+
+    /**
+     * @return Collection<int, CheckSnapshot>
+     */
+    public function centralProblems(): Collection
+    {
+        return $this->central->filter(fn (CheckSnapshot $check): bool => $check->health->needsAttention())->values();
+    }
+
+    public function centralHealthy(): int
+    {
+        return $this->central->filter(fn (CheckSnapshot $check): bool => $check->health->severity() === 0)->count();
+    }
+
+    public function headline(): string
+    {
+        $tenants = $this->attention()->count();
+        $central = $this->centralProblems()->count();
+
+        return match (true) {
+            $tenants > 0 => $tenants.' '.str('tenant')->plural($tenants).' '.($tenants === 1 ? 'needs' : 'need').' attention',
+            $central > 0 => $central.' central '.str('check')->plural($central).' '.($central === 1 ? 'needs' : 'need').' attention',
+            $this->central->isEmpty() && $this->tenants->isEmpty() => 'No checks registered yet',
+            default => 'Everything is healthy',
+        };
+    }
+
+    /**
+     * The four counters at the top: per tenant with tenancy, per central check without.
+     *
+     * @return array<int, array{value: int, label: string, tone: string}>
+     */
+    public function stats(): array
+    {
+        if ($this->usesTenancy) {
+            $healths = $this->tenants->map(fn (TenantSnapshot $tenant): Health => $tenant->health());
+
+            return $this->counters($healths, 'Failing tenants', 'Healthy tenants');
+        }
+
+        return $this->counters($this->central->map(fn (CheckSnapshot $check): Health => $check->health), 'Failing checks', 'Healthy checks');
+    }
+
+    /**
+     * @param  Collection<int, Health>  $healths
+     * @return array<int, array{value: int, label: string, tone: string}>
+     */
+    private function counters(Collection $healths, string $failing, string $healthy): array
+    {
+        return [
+            ['value' => $healths->filter(fn (Health $health): bool => $health->isFailing())->count(), 'label' => $failing, 'tone' => 'fail'],
+            ['value' => $healths->filter(fn (Health $health): bool => $health === Health::Warning)->count(), 'label' => 'Warnings', 'tone' => 'warn'],
+            ['value' => $healths->filter(fn (Health $health): bool => $health === Health::Stale)->count(), 'label' => 'Stale', 'tone' => 'idle'],
+            ['value' => $healths->filter(fn (Health $health): bool => $health->severity() < 2)->count(), 'label' => $healthy, 'tone' => 'ok'],
+        ];
+    }
+}

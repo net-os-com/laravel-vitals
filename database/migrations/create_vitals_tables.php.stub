@@ -1,0 +1,53 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function getConnection(): ?string
+    {
+        $connection = config('vitals.connection');
+
+        return is_string($connection) ? $connection : null;
+    }
+
+    public function up(): void
+    {
+        Schema::create('vitals_results', function (Blueprint $table) {
+            $table->id();
+            $table->string('check_key');
+            $table->string('tenant_key')->nullable();
+            $table->string('status', 16);
+            $table->text('summary');
+            $table->json('meta')->nullable();
+            $table->unsignedInteger('duration_ms');
+            $table->timestamp('started_at');
+            $table->timestamp('finished_at');
+
+            $table->index(['check_key', 'tenant_key', 'finished_at']);
+            $table->index('finished_at');
+        });
+
+        Schema::create('vitals_states', function (Blueprint $table) {
+            $table->id();
+            $table->string('check_key');
+            $table->string('tenant_key')->nullable();
+            $table->string('status', 16);
+            $table->text('summary');
+            $table->timestamp('last_run_at');
+            $table->timestamp('status_since');
+            $table->timestamp('last_success_at')->nullable();
+            $table->unsignedInteger('consecutive_failures')->default(0);
+
+            $table->unique(['check_key', 'tenant_key']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('vitals_states');
+        Schema::dropIfExists('vitals_results');
+    }
+};
