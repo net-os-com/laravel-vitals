@@ -2,6 +2,34 @@
 
 All notable changes to `laravel-vitals` will be documented in this file.
 
+## v0.2.0 - 2026-11-10
+
+### Added
+
+- Mute known problems from the dashboard. You can mute one check for one tenant, a central check, one check for all tenants, or a whole tenant.
+  - A mute lasts for 1 hour, 4 hours, 1 day or 1 week, until the muted checks recover, or until you unmute it, with an optional reason.
+  - Muted problems keep their real status, with a "Muted" badge, but no longer count in the totals, in "Needs attention" or in `status.json`.
+  - `status.json` lists muted problems under `muted`, with `muted_until`, `until_recovered` and `reason`.
+  - The overview has a "Muted" list with an Unmute button.
+  - `CheckFinished` and `CheckStatusChanged` get a `muted` flag, so your own notifications can skip muted checks.
+  - `vitals:prune` also removes expired mutes.
+  
+- A System, Light and Dark theme toggle. The choice is saved per browser.
+- The logo is used as the favicon.
+
+### Fixed
+
+- Searching and filtering in "All tenants" now hides rows. Before, every row stayed visible.
+
+### Upgrading
+
+Publish and run the new migration:
+
+```bash
+php artisan vendor:publish --tag=vitals-migrations
+php artisan migrate
+
+```
 ## v0.1.0 - 2026-11-05
 
 First release of Laravel Vitals: health checks for Laravel, centrally and per tenant, with a Horizon-style dashboard.
