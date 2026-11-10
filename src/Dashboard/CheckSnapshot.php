@@ -7,6 +7,7 @@ use Illuminate\Support\Collection;
 use NetOs\Vitals\Enums\Status;
 use NetOs\Vitals\Exceptions\TenantNotInitialized;
 use NetOs\Vitals\Models\CheckState;
+use NetOs\Vitals\Models\Mute;
 use NetOs\Vitals\Registry\RegisteredCheck;
 use NetOs\Vitals\Tenancy\TenantReference;
 
@@ -21,6 +22,7 @@ final readonly class CheckSnapshot
         public ?CheckState $state,
         public Health $health,
         public Collection $recent,
+        public ?Mute $mute = null,
     ) {}
 
     /**
@@ -32,6 +34,7 @@ final readonly class CheckSnapshot
         ?CheckState $state,
         CarbonImmutable $now,
         ?Collection $recent = null,
+        ?Mute $mute = null,
     ): self {
         $health = match (true) {
             $tenant !== null && ! $check->check->appliesTo($tenant) => Health::NotApplicable,
@@ -40,7 +43,33 @@ final readonly class CheckSnapshot
             default => Health::fromStatus($state->status),
         };
 
-        return new self($check, $tenant, $state, $health, $recent ?? new Collection);
+        return new self($check, $tenant, $state, $health, $recent ?? new Collection, $mute);
+    }
+
+    public function isMuted(): bool
+    {
+        return $this->mute !== null;
+    }
+
+    /**
+     * Whether this check has a problem that nobody muted.
+     */
+    public function needsAttention(): bool
+    {
+        return $this->health->needsAttention() && $this->mute === null;
+    }
+
+    /**
+     * The health for counters and status.json: a muted problem counts as OK.
+     */
+    public function attentionHealth(): Health
+    {
+        return $this->mute !== null && $this->health->needsAttention() ? Health::Ok : $this->health;
+    }
+
+    public function isMutedProblem(): bool
+    {
+        return $this->mute !== null && $this->health->needsAttention();
     }
 
     public function summary(): string

@@ -29,7 +29,7 @@ class VitalsServiceProvider extends PackageServiceProvider
             ->hasConfigFile()
             ->hasViews()
             ->hasRoute('web')
-            ->hasMigration('create_vitals_tables')
+            ->hasMigrations(['create_vitals_tables', 'create_vitals_mutes_table'])
             ->hasCommands([
                 DispatchCommand::class,
                 RunCommand::class,

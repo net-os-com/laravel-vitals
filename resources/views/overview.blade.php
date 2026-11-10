@@ -78,15 +78,30 @@
         </div>
     @endif
 
+    @if($overview->mutes->isNotEmpty())
+        <div class="sect">
+            <div class="secthead"><h3>Muted</h3><span>Not counted in the totals or in status.json</span></div>
+            <div class="card list">
+                @foreach($overview->mutes as $mute)
+                    <div class="mrow">
+                        <span><b>{{ $mute->targetLabel() }}</b><small>{{ $mute->description() }}</small></span>
+                        <span class="ago">since {{ Formatter::dateTime($mute->created_at) }}</span>
+                        <button class="linkbtn" type="button" data-unmute="{{ route('vitals.mutes.destroy', $mute->id) }}">Unmute</button>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
     <div class="sect">
         <div class="secthead"><h3>Central</h3><span>{{ $overview->centralHealthy() }} of {{ $centralCount }} OK</span></div>
         @if($overview->central->isEmpty())
             <div class="card empty">No central checks registered. Add them with <code>Vitals::central([...])</code>.</div>
         @else
             <div class="tiles">
-                @foreach($overview->central->sortByDesc(fn ($check) => $check->health->severity()) as $check)
+                @foreach($overview->central->sortByDesc(fn ($check) => [$check->attentionHealth()->severity(), $check->health->severity()]) as $check)
                     <a class="card tile" href="{{ route('vitals.check', $check->check->key()) }}" data-last-run="{{ $check->lastRunAt()?->getTimestamp() }}">
-                        <div class="tile-top"><b>{{ $check->check->label() }}</b>@include('vitals::partials.badge', ['tone' => $check->health->tone(), 'label' => $check->health->label()])</div>
+                        <div class="tile-top"><b>{{ $check->check->label() }}</b>@include('vitals::partials.status-badges', ['check' => $check])</div>
                         <p>{{ $check->summary() }}</p>
                         <div class="tile-foot">@include('vitals::partials.runs', ['snapshot' => $check])<span class="ago">{{ Formatter::ago($check->lastRunAt(), $overview->now) }}</span></div>
                     </a>
@@ -115,7 +130,7 @@
                         <span class="ago">{{ Formatter::ago($tenant->lastRunAt(), $overview->now) }}</span>
                     </a>
                 @endforeach
-                <div class="empty" data-empty @if($tenantCount > 0) hidden @endif>{{ $tenantCount > 0 ? 'No tenants match this search.' : 'There are no tenants yet.' }}</div>
+                <div class="empty" data-empty @if($tenantCount > 0) hidden @endif>{{ $tenantCount > 0 ? 'No tenants match this search or filter.' : 'There are no tenants yet.' }}</div>
                 <div class="legend">
                     <span><span class="dotsq q-ok"></span>OK</span>
                     <span><span class="dotsq q-warn"></span>Warning</span>

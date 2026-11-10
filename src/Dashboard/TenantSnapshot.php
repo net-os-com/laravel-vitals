@@ -33,7 +33,7 @@ final readonly class TenantSnapshot
     {
         return $this->checks
             ->map(fn (CheckSnapshot $check, int $index): array => [$check, $index])
-            ->sort(fn (array $a, array $b): int => [$b[0]->health->severity(), $a[1]] <=> [$a[0]->health->severity(), $b[1]])
+            ->sort(fn (array $a, array $b): int => [$b[0]->attentionHealth()->severity(), $b[0]->health->severity(), $a[1]] <=> [$a[0]->attentionHealth()->severity(), $a[0]->health->severity(), $b[1]])
             ->map(fn (array $pair): CheckSnapshot => $pair[0])
             ->values();
     }
@@ -43,13 +43,13 @@ final readonly class TenantSnapshot
      */
     public function problems(): Collection
     {
-        return $this->sorted()->filter(fn (CheckSnapshot $check): bool => $check->health->needsAttention())->values();
+        return $this->sorted()->filter(fn (CheckSnapshot $check): bool => $check->needsAttention())->values();
     }
 
     public function health(): Health
     {
         return $this->applicable()
-            ->map(fn (CheckSnapshot $check): Health => $check->health)
+            ->map(fn (CheckSnapshot $check): Health => $check->attentionHealth())
             ->sortByDesc(fn (Health $health): int => $health->severity())
             ->first() ?? Health::Pending;
     }
@@ -64,7 +64,12 @@ final readonly class TenantSnapshot
 
     public function count(Health ...$health): int
     {
-        return $this->applicable()->filter(fn (CheckSnapshot $check): bool => in_array($check->health, $health, true))->count();
+        return $this->applicable()->filter(fn (CheckSnapshot $check): bool => in_array($check->attentionHealth(), $health, true))->count();
+    }
+
+    public function muted(): int
+    {
+        return $this->applicable()->filter(fn (CheckSnapshot $check): bool => $check->isMutedProblem())->count();
     }
 
     public function failing(): int
@@ -89,14 +94,19 @@ final readonly class TenantSnapshot
     public function statusText(): string
     {
         if ($this->isUnreachable()) {
-            return 'Unreachable';
+            return $this->needsAttention() ? 'Unreachable' : 'Unreachable, muted';
         }
 
         $parts = array_filter([
             $this->failing() > 0 ? $this->failing().' failing' : null,
             $this->count(Health::Warning) > 0 ? $this->count(Health::Warning).' '.str('warning')->plural($this->count(Health::Warning)) : null,
             $this->count(Health::Stale) > 0 ? $this->count(Health::Stale).' stale' : null,
+            $this->muted() > 0 ? $this->muted().' muted' : null,
         ]);
+
+        if ($parts !== [] && ! $this->needsAttention()) {
+            return 'All OK, '.implode(', ', $parts);
+        }
 
         if ($parts !== []) {
             return implode(', ', $parts);

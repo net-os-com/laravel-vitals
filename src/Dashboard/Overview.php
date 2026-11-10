@@ -4,12 +4,14 @@ namespace NetOs\Vitals\Dashboard;
 
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
+use NetOs\Vitals\Models\Mute;
 
 final readonly class Overview
 {
     /**
      * @param  Collection<int, CheckSnapshot>  $central
      * @param  Collection<int, TenantSnapshot>  $tenants
+     * @param  Collection<int, Mute>  $mutes
      */
     public function __construct(
         public CarbonImmutable $now,
@@ -19,6 +21,7 @@ final readonly class Overview
         public bool $usesTenancy,
         public ?CarbonImmutable $heartbeat,
         public bool $heartbeatStale,
+        public Collection $mutes = new Collection,
     ) {}
 
     /**
@@ -37,7 +40,7 @@ final readonly class Overview
      */
     public function centralProblems(): Collection
     {
-        return $this->central->filter(fn (CheckSnapshot $check): bool => $check->health->needsAttention())->values();
+        return $this->central->filter(fn (CheckSnapshot $check): bool => $check->needsAttention())->values();
     }
 
     public function centralHealthy(): int
@@ -71,7 +74,7 @@ final readonly class Overview
             return $this->counters($healths, 'Failing tenants', 'Healthy tenants');
         }
 
-        return $this->counters($this->central->map(fn (CheckSnapshot $check): Health => $check->health), 'Failing checks', 'Healthy checks');
+        return $this->counters($this->central->map(fn (CheckSnapshot $check): Health => $check->attentionHealth()), 'Failing checks', 'Healthy checks');
     }
 
     /**

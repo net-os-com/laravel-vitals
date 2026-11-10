@@ -28,7 +28,8 @@ final readonly class StatusController
             $this->snapshots->tenants($now)->flatMap(fn (TenantSnapshot $tenant) => $tenant->applicable()),
         );
 
-        $problems = $checks->filter(fn (CheckSnapshot $check): bool => $check->health->needsAttention())->values();
+        $problems = $checks->filter(fn (CheckSnapshot $check): bool => $check->needsAttention())->values();
+        $muted = $checks->filter(fn (CheckSnapshot $check): bool => $check->isMutedProblem())->values();
         $heartbeatStale = $this->dispatcher->isHeartbeatStale($now);
 
         $unhealthy = $heartbeatStale || $problems->contains(
@@ -55,6 +56,15 @@ final readonly class StatusController
                 'status' => $check->health->value,
                 'summary' => $check->summary(),
                 'last_run_at' => $check->lastRunAt()?->toIso8601String(),
+            ])->all(),
+            'muted' => $muted->map(fn (CheckSnapshot $check): array => [
+                'check' => $check->check->key(),
+                'tenant' => $check->tenant?->key,
+                'status' => $check->health->value,
+                'summary' => $check->summary(),
+                'muted_until' => $check->mute?->until?->toIso8601String(),
+                'until_recovered' => (bool) $check->mute?->until_recovered,
+                'reason' => $check->mute?->reason,
             ])->all(),
         ], $unhealthy ? 503 : 200);
     }

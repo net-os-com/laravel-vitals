@@ -1,4 +1,17 @@
 (function () {
+  var root = document.documentElement, modes = ['system', 'light', 'dark'];
+  var labels = { system: 'System', light: 'Light', dark: 'Dark' };
+  function theme() { return root.dataset.theme || 'system'; }
+  function showTheme() { var label = document.querySelector('[data-theme-label]'); if (label) label.textContent = labels[theme()]; }
+  showTheme();
+  document.addEventListener('click', function (event) {
+    if (!event.target.closest('[data-theme-toggle]')) return;
+    var next = modes[(modes.indexOf(theme()) + 1) % modes.length];
+    if (next === 'system') delete root.dataset.theme; else root.dataset.theme = next;
+    try { if (next === 'system') localStorage.removeItem('vitals-theme'); else localStorage.setItem('vitals-theme', next); } catch (e) {}
+    showTheme();
+  });
+
   var main = document.getElementById('vitals-main');
   if (!main) return;
   var token = document.querySelector('meta[name=csrf-token]').content;
@@ -44,11 +57,50 @@
     });
   }
 
+  var dialog = document.getElementById('vitals-mute');
+  var form = dialog && dialog.querySelector('[data-mute-form]');
+  var muteError = dialog && dialog.querySelector('[data-mute-error]');
+
+  function openMute(target) {
+    var data = JSON.parse(target.dataset.mute);
+    form.reset();
+    form.elements.scope.value = data.scope;
+    form.elements.check.value = data.check || '';
+    form.elements.tenant.value = data.tenant || '';
+    dialog.querySelector('[data-mute-title]').textContent = data.title;
+    dialog.querySelector('[data-mute-all-row]').hidden = !data.allTenants;
+    muteError.textContent = '';
+    dialog.showModal();
+  }
+
+  function send(url, method, body) {
+    return fetch(url, { method: method, body: body, headers: { 'X-CSRF-TOKEN': token, Accept: 'application/json' } });
+  }
+
+  if (form) {
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      var body = new FormData(form);
+      if (body.get('all_tenants')) body.delete('tenant');
+      send(form.getAttribute('action'), 'POST', body).then(function (response) {
+        if (response.ok) { dialog.close(); return refresh(); }
+        return response.json().then(function (json) {
+          var errors = json.errors || {};
+          var first = Object.keys(errors)[0];
+          muteError.textContent = first ? errors[first][0] : (json.message || 'Could not mute this check.');
+        });
+      });
+    });
+  }
+
   document.addEventListener('click', function (event) {
-    var target = event.target.closest('[data-run],[data-filter],[data-refresh]');
+    var target = event.target.closest('[data-run],[data-filter],[data-refresh],[data-mute],[data-unmute],[data-mute-cancel]');
     if (!target) return;
     if (target.dataset.run) run(target);
     else if (target.dataset.filter) { filter = target.dataset.filter; applyFilter(); }
+    else if (target.dataset.mute) openMute(target);
+    else if (target.dataset.unmute) { target.disabled = true; send(target.dataset.unmute, 'DELETE').then(refresh); }
+    else if (target.hasAttribute('data-mute-cancel')) dialog.close();
     else refresh();
   });
 

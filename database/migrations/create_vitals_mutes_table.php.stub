@@ -1,0 +1,36 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function getConnection(): ?string
+    {
+        $connection = config('vitals.connection');
+
+        return is_string($connection) ? $connection : null;
+    }
+
+    public function up(): void
+    {
+        Schema::create('vitals_mutes', function (Blueprint $table) {
+            $table->id();
+            $table->string('scope', 16);
+            $table->string('check_key')->nullable();
+            $table->string('tenant_key')->nullable();
+            $table->string('reason')->nullable();
+            $table->timestamp('until')->nullable();
+            $table->boolean('until_recovered')->default(false);
+            $table->timestamp('created_at');
+
+            $table->index(['scope', 'check_key', 'tenant_key']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('vitals_mutes');
+    }
+};

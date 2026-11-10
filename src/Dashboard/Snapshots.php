@@ -6,6 +6,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use NetOs\Vitals\Enums\Scope;
 use NetOs\Vitals\Models\CheckState;
+use NetOs\Vitals\Muting\Mutes;
 use NetOs\Vitals\Registry\RegisteredCheck;
 use NetOs\Vitals\Storage\ResultRepository;
 use NetOs\Vitals\Tenancy\TenancyAdapter;
@@ -23,6 +24,7 @@ final readonly class Snapshots
         private Vitals $vitals,
         private ResultRepository $results,
         private TenancyAdapter $tenancy,
+        private Mutes $mutes,
     ) {}
 
     /**
@@ -32,6 +34,7 @@ final readonly class Snapshots
     {
         $states = $this->keyed($this->results->states());
         $recent = $this->results->recentStatuses(null, self::STRIP_LENGTH);
+        $mutes = $this->mutes->active($now);
 
         return $this->vitals->checks(Scope::Central)->map(fn (RegisteredCheck $check): CheckSnapshot => CheckSnapshot::make(
             $check,
@@ -39,6 +42,7 @@ final readonly class Snapshots
             $states->get($check->key()),
             $now,
             $recent->get($check->key().'|'),
+            $this->mutes->covering($mutes, $check, null),
         ));
     }
 
@@ -46,6 +50,7 @@ final readonly class Snapshots
     {
         $states = $this->keyed($this->results->states($tenant->key));
         $recent = $withRecent ? $this->results->recentStatuses($tenant->key, self::STRIP_LENGTH) : new Collection;
+        $mutes = $this->mutes->active($now);
 
         return new TenantSnapshot($tenant, $this->vitals->checks(Scope::Tenant)->map(
             fn (RegisteredCheck $check): CheckSnapshot => CheckSnapshot::make(
@@ -54,6 +59,7 @@ final readonly class Snapshots
                 $states->get($check->key()),
                 $now,
                 $recent->get($check->key().'|'.$tenant->key),
+                $this->mutes->covering($mutes, $check, $tenant->key),
             ),
         ));
     }
@@ -68,6 +74,7 @@ final readonly class Snapshots
             ->map(fn (Collection $states): Collection => $this->keyed($states));
 
         $checks = $this->vitals->checks(Scope::Tenant);
+        $mutes = $this->mutes->active($now);
 
         return $this->tenancy->tenants()->map(fn (TenantReference $tenant): TenantSnapshot => new TenantSnapshot(
             $tenant,
@@ -76,6 +83,8 @@ final readonly class Snapshots
                 $tenant,
                 $states->get($tenant->key)?->get($check->key()),
                 $now,
+                null,
+                $this->mutes->covering($mutes, $check, $tenant->key),
             )),
         ));
     }

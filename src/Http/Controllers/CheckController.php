@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use NetOs\Vitals\Dashboard\CheckDetail;
 use NetOs\Vitals\Dashboard\CheckSnapshot;
 use NetOs\Vitals\Enums\Scope;
+use NetOs\Vitals\Muting\Mutes;
 use NetOs\Vitals\Storage\ResultRepository;
 use NetOs\Vitals\Tenancy\TenancyAdapter;
 use NetOs\Vitals\Vitals;
@@ -20,6 +21,7 @@ final readonly class CheckController
         private TenancyAdapter $tenancy,
         private ResultRepository $results,
         private Factory $views,
+        private Mutes $mutes,
     ) {}
 
     public function __invoke(Request $request, string $check): View
@@ -40,7 +42,7 @@ final readonly class CheckController
         $state = $this->results->state($check, $tenant?->key);
 
         return $this->views->make('vitals::check', ['detail' => new CheckDetail(
-            snapshot: CheckSnapshot::make($registered, $tenant, $state, $now),
+            snapshot: CheckSnapshot::make($registered, $tenant, $state, $now, null, $this->mutes->covering($this->mutes->active($now), $registered, $tenant?->key)),
             range: $range,
             since: $since,
             now: $now,

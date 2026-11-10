@@ -15,5 +15,6 @@ final class CheckFinished
         public readonly RegisteredCheck $check,
         public readonly ?TenantReference $tenant,
         public readonly CheckRun $run,
+        public readonly bool $muted = false,
     ) {}
 }

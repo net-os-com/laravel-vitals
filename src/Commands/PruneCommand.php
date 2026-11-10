@@ -4,6 +4,7 @@ namespace NetOs\Vitals\Commands;
 
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
+use NetOs\Vitals\Muting\Mutes;
 use NetOs\Vitals\Storage\ResultRepository;
 
 final class PruneCommand extends Command
@@ -12,12 +13,13 @@ final class PruneCommand extends Command
 
     protected $description = 'Delete check results older than the retention period';
 
-    public function handle(ResultRepository $results): int
+    public function handle(ResultRepository $results, Mutes $mutes): int
     {
         $days = $this->option('days') ?? config('vitals.retention_days', 14);
         $days = is_numeric($days) ? (int) $days : 14;
 
         $deleted = $results->prune(CarbonImmutable::now()->subDays($days));
+        $mutes->pruneExpired(CarbonImmutable::now());
 
         $this->components->info("Deleted {$deleted} ".str('result')->plural($deleted)." older than {$days} days.");
 

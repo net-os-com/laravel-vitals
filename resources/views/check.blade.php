@@ -39,6 +39,7 @@
                 @endforeach
             </div>
             @if($snapshot->health !== Health::NotApplicable)
+                @include('vitals::partials.mute-button', ['check' => $snapshot, 'class' => 'btn'])
                 <button class="btn primary" type="button" data-run="{{ route('vitals.check.run', ['check' => $check->key(), ...$tenantQuery]) }}">Run now</button>
             @endif
         </div>
@@ -47,7 +48,7 @@
     <div class="detail">
         <div class="card now" data-last-run="{{ $snapshot->lastRunAt()?->getTimestamp() }}">
             <div class="now-top">
-                @include('vitals::partials.badge', ['tone' => $snapshot->health->tone(), 'label' => $snapshot->health->label()])
+                @include('vitals::partials.status-badges', ['check' => $snapshot])
                 <div>
                     <h4>{{ $snapshot->summary() !== '' ? $snapshot->summary() : $snapshot->health->label() }}</h4>
                     @if($state)

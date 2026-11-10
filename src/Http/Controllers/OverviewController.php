@@ -9,6 +9,7 @@ use Illuminate\Support\Str;
 use NetOs\Vitals\Dashboard\Overview;
 use NetOs\Vitals\Dashboard\Snapshots;
 use NetOs\Vitals\Enums\Scope;
+use NetOs\Vitals\Muting\Mutes;
 use NetOs\Vitals\Scheduling\Dispatcher;
 use NetOs\Vitals\Vitals;
 
@@ -18,6 +19,7 @@ final readonly class OverviewController
         private Snapshots $snapshots,
         private Dispatcher $dispatcher,
         private Vitals $vitals,
+        private Mutes $mutes,
         private Factory $views,
     ) {}
 
@@ -35,6 +37,7 @@ final readonly class OverviewController
             usesTenancy: $tenants->isNotEmpty() || $this->vitals->checks(Scope::Tenant)->isNotEmpty(),
             heartbeat: $this->dispatcher->lastHeartbeat(),
             heartbeatStale: $this->dispatcher->isHeartbeatStale($now),
+            mutes: $this->mutes->active($now),
         )]);
     }
 }

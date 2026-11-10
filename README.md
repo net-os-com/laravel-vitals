@@ -8,7 +8,7 @@ Health checks for Laravel, both for the whole application and per tenant, with a
 - You write checks as small PHP classes and register them in code, either centrally or per tenant.
 - A dispatcher runs every minute and puts the checks that are due on the queue. A tenant's checks run together in one job, inside a single tenancy initialization.
 - Results go to the central database: `vitals_results` holds the history (14 days by default) and `vitals_states` holds the latest state.
-- A server-rendered Blade dashboard lives at `/vitals`, behind a configurable gate.
+- A server-rendered Blade dashboard lives at `/vitals`, behind a configurable gate, in light or dark mode. You can mute known problems from it.
 - `/vitals/status.json` returns 200 or 503 for an external monitor.
 - There are no notification channels. Listen to the `CheckStatusChanged` and `CheckFinished` events to add your own.
 
@@ -105,6 +105,17 @@ Access is decided in this order:
 3. Otherwise only the `local` environment.
 
 `status.json` also accepts the `X-Vitals-Token` header when `VITALS_STATUS_TOKEN` is set. It returns 503 when a check has failed, crashed or gone stale, or when the dispatcher has not run for 3 minutes. A check counts as stale when it has not reported for twice its interval plus 5 minutes.
+
+## Muting
+
+From the dashboard you can mute a known problem, so it no longer counts in the totals or in `status.json`, while its real status stays visible. You can mute four things:
+
+- One check for one tenant.
+- A central check.
+- One check for all tenants.
+- A whole tenant.
+
+A mute lasts for a fixed period (1 hour up to 1 week), until the muted checks recover, or until you unmute it. You can add a reason, and the overview lists every active mute. `status.json` reports muted problems under `muted` instead of `problems`. The events carry a `muted` flag, so your own notifications can skip them.
 
 ## Tenancy
 
