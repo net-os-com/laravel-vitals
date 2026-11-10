@@ -2,11 +2,34 @@
 
 All notable changes to `laravel-vitals` will be documented in this file.
 
+## v0.3.0 - 2026-11-10
+
+### Added
+
+- **Recent changes:** the overview lists the latest status changes over all checks and tenants, backed by the new `vitals_changes` table. Old changes are pruned with the results.
+- **Tenant checks:** a page per tenant check that shows it for every tenant (`/vitals/checks/{check}/tenants`), with a "Mute for all tenants" button. The overview gets a "Tenant checks" summary.
+- **Mute commands:** `vitals:mute {check?} {--tenant=} {--central} {--all} {--for=15m|2h|1d} {--until-recovered} {--reason=}` and `vitals:unmute {id?*} {--reason=} {--all}`, for example around a deploy.
+- **Flapping:** a "Flapping" badge for a check that switched between healthy and unhealthy at least 4 times in its last 12 runs.
+- **Queue backlog:** the overview and `status.json` show how many check jobs wait on the Vitals queue and how old the oldest is. When it waits longer than `vitals.queue_backlog_minutes` (10), the overview shows an alert and `status.json` returns 503.
+- **Runbooks:** `->runbook('https://…')` on a check adds a link to the check page and a `runbook` field to `status.json`.
+- **Links:** every problem in `status.json` has a `url` to its check page.
+- **Sentry:** when a check crashes, the Sentry event id is stored in the result's meta. Set `VITALS_SENTRY_EVENT_URL` to turn it into a link.
+
+### Upgrading
+
+Publish and run the new migration, and optionally republish the config for `queue_backlog_minutes` and `links.sentry_event`:
+
+```bash
+php artisan vendor:publish --tag=vitals-migrations
+php artisan migrate
+
+```
 ## v0.2.0 - 2026-11-10
 
 ### Added
 
 - Mute known problems from the dashboard. You can mute one check for one tenant, a central check, one check for all tenants, or a whole tenant.
+  
   - A mute lasts for 1 hour, 4 hours, 1 day or 1 week, until the muted checks recover, or until you unmute it, with an optional reason.
   - Muted problems keep their real status, with a "Muted" badge, but no longer count in the totals, in "Needs attention" or in `status.json`.
   - `status.json` lists muted problems under `muted`, with `muted_until`, `until_recovered` and `reason`.
@@ -15,7 +38,9 @@ All notable changes to `laravel-vitals` will be documented in this file.
   - `vitals:prune` also removes expired mutes.
   
 - A System, Light and Dark theme toggle. The choice is saved per browser.
+  
 - The logo is used as the favicon.
+  
 
 ### Fixed
 
@@ -28,6 +53,7 @@ Publish and run the new migration:
 ```bash
 php artisan vendor:publish --tag=vitals-migrations
 php artisan migrate
+
 
 ```
 ## v0.1.0 - 2026-11-05
