@@ -7,6 +7,7 @@ use Closure;
 use NetOs\Vitals\Check;
 use NetOs\Vitals\Exceptions\CheckTimedOut;
 use NetOs\Vitals\Result;
+use NetOs\Vitals\Support\SentryEvents;
 use Throwable;
 
 /**
@@ -22,11 +23,14 @@ class CheckRunner
         try {
             $result = $this->withTimeout($check->timeoutSeconds(), fn (): Result => $check->run());
         } catch (Throwable $exception) {
+            $meta = [];
+
             if (! $exception instanceof CheckTimedOut) {
                 report($exception);
+                $meta = SentryEvents::meta();
             }
 
-            $result = Result::crashed($exception->getMessage() !== '' ? $exception->getMessage() : $exception::class);
+            $result = Result::crashed($exception->getMessage() !== '' ? $exception->getMessage() : $exception::class)->meta($meta);
         }
 
         return new CheckRun(

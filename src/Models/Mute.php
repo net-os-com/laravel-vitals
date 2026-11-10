@@ -69,7 +69,9 @@ class Mute extends Model
     public function targetLabel(): string
     {
         return match (true) {
+            $this->scope === Scope::Central && $this->check_key === null => 'All central checks',
             $this->scope === Scope::Central => 'Central check '.$this->check_key,
+            $this->check_key === null && $this->tenant_key === null => 'All tenant checks',
             $this->check_key === null => 'All checks of tenant '.$this->tenant_key,
             $this->tenant_key === null => 'Check '.$this->check_key.' for all tenants',
             default => 'Check '.$this->check_key.' for tenant '.$this->tenant_key,

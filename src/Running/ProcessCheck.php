@@ -48,10 +48,13 @@ final readonly class ProcessCheck
         return $run;
     }
 
-    public function crash(RegisteredCheck $check, ?TenantReference $tenant, string $summary): CheckRun
+    /**
+     * @param  array<string, scalar|null>  $meta
+     */
+    public function crash(RegisteredCheck $check, ?TenantReference $tenant, string $summary, array $meta = []): CheckRun
     {
         $now = CarbonImmutable::now();
 
-        return $this->record($check, $tenant, new CheckRun(Result::crashed($summary), $now, $now, 0));
+        return $this->record($check, $tenant, new CheckRun(Result::crashed($summary)->meta($meta), $now, $now, 0));
     }
 }

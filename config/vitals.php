@@ -29,6 +29,11 @@ return [
     'queue_connection' => env('VITALS_QUEUE_CONNECTION'),
 
     /*
+     * The dashboard and status.json warn when the oldest job on the Vitals queue waits longer than this.
+     */
+    'queue_backlog_minutes' => 10,
+
+    /*
      * The cache store for the dispatcher heartbeat. Null is the default store.
      */
     'cache_store' => env('VITALS_CACHE_STORE'),
@@ -68,6 +73,14 @@ return [
      * An external monitor can read /vitals/status.json with the X-Vitals-Token header set to this value.
      */
     'status_token' => env('VITALS_STATUS_TOKEN'),
+
+    'links' => [
+        /*
+         * A link to a Sentry event, shown on a crashed result. {event_id} is replaced by the event id,
+         * for example https://my-org.sentry.io/issues/?query=id%3A{event_id}
+         */
+        'sentry_event' => env('VITALS_SENTRY_EVENT_URL'),
+    ],
 
     'dashboard' => [
         /*

@@ -30,6 +30,8 @@
                 <span class="badge b-plain">{{ $check->scope->label() }}</span>
                 <span class="badge b-plain">{{ $check->frequency->label() }}</span>
                 <span class="badge b-plain">Timeout {{ $check->check->timeoutSeconds() }}s</span>
+                @if($tenant)<a class="badge b-link" href="{{ route('vitals.check.tenants', $check->key()) }}">All tenants →</a>@endif
+                @if($check->check->runbookUrl())<a class="badge b-link" href="{{ $check->check->runbookUrl() }}" target="_blank" rel="noopener">Runbook ↗</a>@endif
             </div>
         </div>
         <div class="actions">
@@ -73,7 +75,8 @@
             @if($detail->latest && $detail->latest->meta)
                 <dl>
                     @foreach($detail->latest->meta as $key => $value)
-                        <dt>{{ $key }}</dt><dd>{{ is_bool($value) ? ($value ? 'true' : 'false') : ($value ?? 'null') }}</dd>
+                        @php $sentryUrl = $key === 'sentry_event_id' && is_string($value) ? \NetOs\Vitals\Support\SentryEvents::url($value) : null; @endphp
+                        <dt>{{ $key }}</dt><dd>@if($sentryUrl)<a href="{{ $sentryUrl }}" target="_blank" rel="noopener">{{ $value }} ↗</a>@else{{ is_bool($value) ? ($value ? 'true' : 'false') : ($value ?? 'null') }}@endif</dd>
                     @endforeach
                 </dl>
             @elseif($detail->latest)

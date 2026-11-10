@@ -117,6 +117,27 @@ From the dashboard you can mute a known problem, so it no longer counts in the t
 
 A mute lasts for a fixed period (1 hour up to 1 week), until the muted checks recover, or until you unmute it. You can add a reason, and the overview lists every active mute. `status.json` reports muted problems under `muted` instead of `problems`. The events carry a `muted` flag, so your own notifications can skip them.
 
+### Muting during a deploy
+
+Mute everything at the start of a deploy and lift it at the end, so short hiccups don't page anyone:
+
+```bash
+php artisan vitals:mute --all --for=15m --reason=Deploy
+# ... deploy ...
+php artisan vitals:unmute --reason=Deploy
+```
+
+`vitals:mute {check?} {--tenant=} {--central} {--all} {--for=15m|2h|1d} {--until-recovered} {--reason=}` and `vitals:unmute {id?*} {--reason=} {--all}`.
+
+## Dashboard
+
+- **Recent changes:** the overview lists the latest status changes over all checks and tenants.
+- **Tenant checks:** the overview has a summary per tenant check, and each check has a page that shows it for every tenant (`/vitals/checks/{check}/tenants`), with a button to mute it for all tenants.
+- **Flapping:** a check gets a "Flapping" badge when it switched between healthy and unhealthy at least 4 times in its last 12 runs. That usually means a threshold is too tight.
+- **Queue backlog:** the overview and `status.json` show how many check jobs wait on the Vitals queue. Both warn, and `status.json` returns 503, when the oldest job waits longer than `vitals.queue_backlog_minutes`. This is measured live, so it still works when the queue is stuck.
+- **Runbooks:** `->runbook('https://…')` on a check adds a link to the check page and a `runbook` field to `status.json`. Every problem in `status.json` also has a `url` to its check page.
+- **Sentry:** when a check crashes and the Sentry SDK is installed, the event id is stored in the result's meta. Set `VITALS_SENTRY_EVENT_URL` (for example `https://my-org.sentry.io/issues/?query=id%3A{event_id}`) to turn it into a link.
+
 ## Tenancy
 
 With stancl/tenancy installed, Vitals uses `StanclTenancyAdapter`. For each tenant it initializes tenancy once, runs all due checks, and ends tenancy in a `finally` block. If the tenant cannot be initialized, or its database cannot be reached, every check of that tenant is recorded as crashed with "Tenant could not be initialized". Results are always written to the central connection.

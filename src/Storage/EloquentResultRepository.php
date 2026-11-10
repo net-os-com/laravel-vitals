@@ -7,6 +7,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use NetOs\Vitals\Enums\Status;
+use NetOs\Vitals\Models\CheckChange;
 use NetOs\Vitals\Models\CheckResult;
 use NetOs\Vitals\Models\CheckState;
 use NetOs\Vitals\Running\CheckRun;
@@ -35,6 +36,17 @@ final class EloquentResultRepository implements ResultRepository
         ]);
 
         $previous = $state->exists ? $state->status : null;
+
+        if ($previous !== null && $previous !== $result->status) {
+            CheckChange::query()->create([
+                'check_key' => $checkKey,
+                'tenant_key' => $tenantKey,
+                'from_status' => $previous,
+                'to_status' => $result->status,
+                'summary' => $result->summary,
+                'changed_at' => $run->finishedAt,
+            ]);
+        }
 
         $state->fill([
             'status' => $result->status,
@@ -102,8 +114,15 @@ final class EloquentResultRepository implements ResultRepository
             ->first();
     }
 
+    public function changes(int $limit): Collection
+    {
+        return CheckChange::query()->orderByDesc('changed_at')->orderByDesc('id')->limit($limit)->get();
+    }
+
     public function prune(CarbonInterface $before): int
     {
+        CheckChange::query()->where('changed_at', '<', $before)->delete();
+
         return CheckResult::query()->where('finished_at', '<', $before)->delete();
     }
 

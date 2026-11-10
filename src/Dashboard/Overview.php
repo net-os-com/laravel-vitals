@@ -12,6 +12,8 @@ final readonly class Overview
      * @param  Collection<int, CheckSnapshot>  $central
      * @param  Collection<int, TenantSnapshot>  $tenants
      * @param  Collection<int, Mute>  $mutes
+     * @param  Collection<int, ChangeEntry>  $changes
+     * @param  array{queue: string, size: int|null, oldest_seconds: int|null}  $queueBacklog
      */
     public function __construct(
         public CarbonImmutable $now,
@@ -22,6 +24,9 @@ final readonly class Overview
         public ?CarbonImmutable $heartbeat,
         public bool $heartbeatStale,
         public Collection $mutes = new Collection,
+        public Collection $changes = new Collection,
+        public array $queueBacklog = ['queue' => 'default', 'size' => null, 'oldest_seconds' => null],
+        public bool $queueBehind = false,
     ) {}
 
     /**
@@ -46,6 +51,22 @@ final readonly class Overview
     public function centralHealthy(): int
     {
         return $this->central->filter(fn (CheckSnapshot $check): bool => $check->health->severity() === 0)->count();
+    }
+
+    /**
+     * Every tenant check over all tenants, for the "Tenant checks" section.
+     *
+     * @return Collection<int, CheckAcrossTenants>
+     */
+    public function tenantChecks(): Collection
+    {
+        $first = $this->tenants->first();
+
+        if ($first === null) {
+            return new Collection;
+        }
+
+        return $first->checks->map(fn (CheckSnapshot $snapshot): CheckAcrossTenants => CheckAcrossTenants::from($snapshot->check, $this->tenants));
     }
 
     public function headline(): string

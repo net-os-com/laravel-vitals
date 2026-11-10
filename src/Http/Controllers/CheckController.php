@@ -8,6 +8,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use NetOs\Vitals\Dashboard\CheckDetail;
 use NetOs\Vitals\Dashboard\CheckSnapshot;
+use NetOs\Vitals\Dashboard\Flapping;
 use NetOs\Vitals\Enums\Scope;
 use NetOs\Vitals\Muting\Mutes;
 use NetOs\Vitals\Storage\ResultRepository;
@@ -42,7 +43,14 @@ final readonly class CheckController
         $state = $this->results->state($check, $tenant?->key);
 
         return $this->views->make('vitals::check', ['detail' => new CheckDetail(
-            snapshot: CheckSnapshot::make($registered, $tenant, $state, $now, null, $this->mutes->covering($this->mutes->active($now), $registered, $tenant?->key)),
+            snapshot: CheckSnapshot::make(
+                $registered,
+                $tenant,
+                $state,
+                $now,
+                $this->results->recentStatuses($tenant?->key, Flapping::WINDOW)->get($check.'|'.$tenant?->key),
+                $this->mutes->covering($this->mutes->active($now), $registered, $tenant?->key),
+            ),
             range: $range,
             since: $since,
             now: $now,

@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use NetOs\Vitals\Http\Controllers\CheckController;
+use NetOs\Vitals\Http\Controllers\CheckTenantsController;
 use NetOs\Vitals\Http\Controllers\DeleteMuteController;
 use NetOs\Vitals\Http\Controllers\OverviewController;
 use NetOs\Vitals\Http\Controllers\RunAllController;
@@ -29,6 +30,7 @@ Route::group([
         Route::get('tenants/{tenant}', TenantController::class)->name('tenant');
         Route::post('tenants/{tenant}/run', RunTenantController::class)->name('tenant.run');
         Route::get('checks/{check}', CheckController::class)->name('check');
+        Route::get('checks/{check}/tenants', CheckTenantsController::class)->name('check.tenants');
         Route::post('checks/{check}/run', RunCheckController::class)->name('check.run');
         Route::post('mutes', StoreMuteController::class)->name('mutes.store');
         Route::delete('mutes/{mute}', DeleteMuteController::class)->whereNumber('mute')->name('mutes.destroy');

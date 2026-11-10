@@ -65,7 +65,7 @@ class WorkbenchServiceProvider extends ServiceProvider
         Vitals::tenant([
             TenantDatabaseCheck::new(),
             PendingMigrationsCheck::new()->hourly(),
-            LastSyncCheck::new()->withLabel('External sync'),
+            LastSyncCheck::new()->withLabel('External sync')->runbook('https://example.com/runbooks/external-sync'),
             DeskCountCheck::new()->withLabel('Desks'),
             KioskCheck::new()->withLabel('Visitor kiosk')->onlyFor(
                 fn (TenantReference $tenant): bool => $tenant->model instanceof Tenant && (bool) $tenant->model->kiosk,

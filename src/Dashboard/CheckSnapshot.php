@@ -72,6 +72,21 @@ final readonly class CheckSnapshot
         return $this->mute !== null && $this->health->needsAttention();
     }
 
+    public function isFlapping(): bool
+    {
+        return Flapping::detect($this->recent);
+    }
+
+    public function flappingDescription(): string
+    {
+        return 'Switched between healthy and unhealthy '.Flapping::changes($this->recent).' times in the last '.Flapping::WINDOW.' runs';
+    }
+
+    public function url(): string
+    {
+        return route('vitals.check', array_filter(['check' => $this->check->key(), 'tenant' => $this->tenant?->key]));
+    }
+
     public function summary(): string
     {
         return match ($this->health) {

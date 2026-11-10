@@ -37,17 +37,43 @@ final class Mutes
 
     public function mute(Scope $scope, ?string $checkKey, ?string $tenantKey, MuteDuration $duration, ?string $reason): Mute
     {
-        $now = CarbonImmutable::now();
+        return $this->muteUntil(
+            $scope,
+            $checkKey,
+            $tenantKey,
+            $duration->until(CarbonImmutable::now()),
+            $duration === MuteDuration::UntilRecovered,
+            $reason,
+        );
+    }
 
+    /**
+     * A null check key mutes every check of the scope (for that tenant, when given).
+     */
+    public function muteUntil(Scope $scope, ?string $checkKey, ?string $tenantKey, ?CarbonImmutable $until, bool $untilRecovered, ?string $reason): Mute
+    {
         return Mute::query()->create([
             'scope' => $scope,
             'check_key' => $checkKey,
-            'tenant_key' => $tenantKey,
+            'tenant_key' => $scope === Scope::Central ? null : $tenantKey,
             'reason' => $reason === '' ? null : $reason,
-            'until' => $duration->until($now),
-            'until_recovered' => $duration === MuteDuration::UntilRecovered,
-            'created_at' => $now,
+            'until' => $until,
+            'until_recovered' => $untilRecovered,
+            'created_at' => CarbonImmutable::now(),
         ]);
+    }
+
+    /**
+     * @return int the number of lifted mutes
+     */
+    public function unmuteWithReason(string $reason): int
+    {
+        return Mute::query()->where('reason', $reason)->delete();
+    }
+
+    public function unmuteAll(): int
+    {
+        return Mute::query()->delete();
     }
 
     public function unmute(int $id): bool

@@ -17,6 +17,8 @@ abstract class Check
 
     protected int $timeout = 30;
 
+    protected ?string $runbook = null;
+
     /** @var (Closure(TenantReference): bool)|null */
     protected ?Closure $onlyFor = null;
 
@@ -62,6 +64,21 @@ abstract class Check
         $this->timeout = $seconds;
 
         return $this;
+    }
+
+    /**
+     * A page that explains what to do when this check fails. Shown on the check page and in status.json.
+     */
+    public function runbook(string $url): static
+    {
+        $this->runbook = $url;
+
+        return $this;
+    }
+
+    public function runbookUrl(): ?string
+    {
+        return $this->runbook;
     }
 
     /**

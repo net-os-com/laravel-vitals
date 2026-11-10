@@ -4,6 +4,7 @@ namespace NetOs\Vitals\Running;
 
 use NetOs\Vitals\Exceptions\TenantNotInitialized;
 use NetOs\Vitals\Registry\RegisteredCheck;
+use NetOs\Vitals\Support\SentryEvents;
 use NetOs\Vitals\Tenancy\TenancyAdapter;
 use NetOs\Vitals\Tenancy\TenantReference;
 
@@ -42,11 +43,12 @@ final readonly class ProcessTenantChecks
             });
         } catch (TenantNotInitialized $exception) {
             report($exception);
+            $meta = SentryEvents::meta();
 
             $runs = [];
 
             foreach ($checks as $check) {
-                $runs[$check->key()] = $this->processCheck->crash($check, $tenant, $exception->getMessage());
+                $runs[$check->key()] = $this->processCheck->crash($check, $tenant, $exception->getMessage(), $meta);
             }
 
             return $runs;

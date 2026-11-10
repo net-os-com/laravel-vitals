@@ -22,6 +22,16 @@
                 @else
                     The scheduler has not dispatched any checks yet.
                 @endif
+                @php
+                    $backlog = $overview->queueBacklog;
+                    $backlogText = match (true) {
+                        $backlog['size'] === null => null,
+                        $backlog['size'] === 0 => "No check jobs are waiting on the {$backlog['queue']} queue.",
+                        $backlog['oldest_seconds'] !== null => "{$backlog['size']} check ".str('job')->plural($backlog['size'])." waiting on the {$backlog['queue']} queue, the oldest for ".Formatter::duration($backlog['oldest_seconds']).'.',
+                        default => "{$backlog['size']} check ".str('job')->plural($backlog['size'])." waiting on the {$backlog['queue']} queue.",
+                    };
+                @endphp
+                {{ $backlogText }}
             </p>
         </div>
         <div class="actions">
@@ -36,6 +46,11 @@
                 The last dispatch was {{ Formatter::dateTime($overview->heartbeat) }}.
             @endif
             Make sure <code>php artisan schedule:run</code> runs every minute, because <code>vitals:dispatch</code> depends on it.</span></div>
+    @endif
+
+    @if($overview->queueBehind)
+        <div class="alert" role="status"><span class="dotsq q-fail"></span><span><strong>Checks are falling behind.</strong>
+            The oldest job on the {{ $overview->queueBacklog['queue'] }} queue has waited {{ Formatter::duration((int) $overview->queueBacklog['oldest_seconds']) }}. Check that a worker processes this queue.</span></div>
     @endif
 
     <div class="stats">
@@ -78,6 +93,21 @@
         </div>
     @endif
 
+    @if($overview->changes->isNotEmpty())
+        <div class="sect">
+            <div class="secthead"><h3>Recent changes</h3><span>Newest first</span></div>
+            <div class="card list">
+                @foreach($overview->changes as $entry)
+                    <a class="crow" href="{{ $entry->url }}">
+                        <span class="dotsq q-{{ \NetOs\Vitals\Dashboard\Health::fromStatus($entry->change->to_status)->tone() }}"></span>
+                        <span><b>{{ $entry->checkLabel }}@if($entry->tenantName) · {{ $entry->tenantName }}@endif</b><small>{{ $entry->change->from_status->label() }} → {{ $entry->change->to_status->label() }}@if($entry->change->summary !== '') · {{ $entry->change->summary }}@endif</small></span>
+                        <span class="ago">{{ Formatter::dateTime($entry->change->changed_at) }}</span>
+                    </a>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
     @if($overview->mutes->isNotEmpty())
         <div class="sect">
             <div class="secthead"><h3>Muted</h3><span>Not counted in the totals or in status.json</span></div>
@@ -109,6 +139,27 @@
             </div>
         @endif
     </div>
+
+    @if($overview->usesTenancy && $overview->tenantChecks()->isNotEmpty())
+        <div class="sect">
+            <div class="secthead"><h3>Tenant checks</h3><span>Each check over all tenants</span></div>
+            <div class="card list">
+                @foreach($overview->tenantChecks() as $matrix)
+                    <a class="crow" href="{{ route('vitals.check.tenants', $matrix->check->key()) }}">
+                        <span class="dotsq q-{{ $matrix->worst()->tone() }}"></span>
+                        <span><b>{{ $matrix->check->label() }}</b><small>{{ $matrix->check->frequency->label() }} · {{ $matrix->applicable() }} {{ str('tenant')->plural($matrix->applicable()) }}</small></span>
+                        <span class="counts">
+                            @if($matrix->failing() > 0)<span class="badge b-fail">{{ $matrix->failing() }} failing</span>@endif
+                            @if($matrix->count(Health::Warning) > 0)<span class="badge b-warn">{{ $matrix->count(Health::Warning) }} {{ str('warning')->plural($matrix->count(Health::Warning)) }}</span>@endif
+                            @if($matrix->count(Health::Stale) > 0)<span class="badge b-idle">{{ $matrix->count(Health::Stale) }} stale</span>@endif
+                            @if($matrix->muted() > 0)<span class="badge b-mute">{{ $matrix->muted() }} muted</span>@endif
+                            @if($matrix->worst()->severity() < 2 && $matrix->muted() === 0)<span class="ago">All OK</span>@endif
+                        </span>
+                    </a>
+                @endforeach
+            </div>
+        </div>
+    @endif
 
     @if($overview->usesTenancy)
         <div class="sect">

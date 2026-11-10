@@ -7,8 +7,10 @@ use Illuminate\Contracts\Cache\Repository;
 use Illuminate\Contracts\Foundation\Application;
 use NetOs\Vitals\Commands\DispatchCommand;
 use NetOs\Vitals\Commands\ListCommand;
+use NetOs\Vitals\Commands\MuteCommand;
 use NetOs\Vitals\Commands\PruneCommand;
 use NetOs\Vitals\Commands\RunCommand;
+use NetOs\Vitals\Commands\UnmuteCommand;
 use NetOs\Vitals\Scheduling\Dispatcher;
 use NetOs\Vitals\Storage\EloquentResultRepository;
 use NetOs\Vitals\Storage\ResultRepository;
@@ -29,12 +31,14 @@ class VitalsServiceProvider extends PackageServiceProvider
             ->hasConfigFile()
             ->hasViews()
             ->hasRoute('web')
-            ->hasMigrations(['create_vitals_tables', 'create_vitals_mutes_table'])
+            ->hasMigrations(['create_vitals_tables', 'create_vitals_mutes_table', 'create_vitals_changes_table'])
             ->hasCommands([
                 DispatchCommand::class,
                 RunCommand::class,
                 ListCommand::class,
                 PruneCommand::class,
+                MuteCommand::class,
+                UnmuteCommand::class,
             ])
             ->hasInstallCommand(function (InstallCommand $command) {
                 $command
